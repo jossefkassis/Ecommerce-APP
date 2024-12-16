@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Shop;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class ShopController extends Controller
 {
@@ -33,11 +35,10 @@ class ShopController extends Controller
         return response()->json($shops);
     }
 
-
     // Admin: Show a specific shop by ID
     public function adminShow($id)
     {
-        $shop = Shop::where('id', $id)->first();
+        $shop = Shop::find($id);
 
         if (!$shop) {
             return response()->json(['message' => 'Shop not found'], 404);
@@ -52,40 +53,62 @@ class ShopController extends Controller
         $validatedData = $request->validate([
             'name' => 'required|string|max:255|unique:shops',
             'is_active' => 'required|boolean',
+            'image' => 'sometimes|file|mimes:jpg,jpeg,png,gif,webp|max:2048',
         ]);
-
+    
+        if ($request->hasFile('image')) {
+            // Store the file in the "images" directory within "storage/app/public"
+            $path = $request->file('image')->store('shop', 'public');
+        
+            // Generate the public URL
+            $validatedData['image_url'] = url('storage/' . $path);
+        
+         }
+    
+        // Create the shop record in the database
         $shop = Shop::create($validatedData);
-
+    
         return response()->json([
             'message' => 'Shop created successfully',
             'shop' => $shop,
         ], 201);
     }
+    
 
-    // Admin: Update an existing shop
+    // Admin: Update a shop
     public function update(Request $request, $id)
     {
         $shop = Shop::find($id);
-    
+
         if (!$shop) {
             return response()->json(['message' => 'Shop not found'], 404);
         }
-    
-        // Validate only the fields present in the request
+
         $validatedData = $request->validate([
             'name' => 'sometimes|required|string|max:255|unique:shops,name,' . $id,
+            'image' => 'sometimes|file|mimetypes:image/jpeg,image/png,image/gif,image/webp|max:2048', // Validate image
             'is_active' => 'sometimes|boolean',
         ]);
-    
-        // Update the shop with the validated data
+
+        if ($request->hasFile('image')) {
+            // Delete old image if it exists
+            if ($shop->image_url) {
+                $oldImagePath = str_replace(url('/storage/'), '', $shop->image_url);
+                Storage::disk('public')->delete($oldImagePath);
+            }
+
+            // Store the new image
+            $path = $request->file('image')->store('shop', 'public');
+            $validatedData['image_url'] = url(Storage::url($path));
+        }
+
         $shop->update($validatedData);
-    
+
         return response()->json([
             'message' => 'Shop updated successfully',
             'shop' => $shop,
         ]);
     }
-    
 
     // Admin: Delete a shop
     public function destroy($id)

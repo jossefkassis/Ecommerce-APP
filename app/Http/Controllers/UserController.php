@@ -34,6 +34,7 @@ class UserController extends Controller
     public function updateProfile(Request $request)
     {
         $user = Auth::user();
+        dd($user);
 
         $validatedData = $request->validate([
             'name' => 'sometimes|string|max:255',
@@ -45,11 +46,11 @@ class UserController extends Controller
         $user = User::where('email',$user['email'])->first();
 
         if ($request->hasFile('image')) {
-            // Delete old image if exists
+            
             if ($user->image) {
                 Storage::disk('public')->delete($user->image);
             }
-            // Store new image
+            
             $path = $request->file('image')->store('profile_images', 'public');
             $validatedData['image'] = $path;
         }
