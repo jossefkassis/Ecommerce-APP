@@ -34,12 +34,12 @@ class UserController extends Controller
     public function updateProfile(Request $request)
     {
         $user = Auth::user();
-        dd($user);
 
         $validatedData = $request->validate([
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|string|email|max:255|unique:users,email,' . $user->id,
             'address' => 'sometimes|string|max:255',
+            'phone' => 'sometimes|string|unique:users,phone,' . $user->id,
             'image' => 'sometimes|image|max:2048',
         ]);
 

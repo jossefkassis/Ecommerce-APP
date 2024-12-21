@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Shop;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class ShopController extends Controller
@@ -52,6 +51,7 @@ class ShopController extends Controller
     {
         $validatedData = $request->validate([
             'name' => 'required|string|max:255|unique:shops',
+            'description' => 'required|string',
             'is_active' => 'required|boolean',
             'image' => 'sometimes|file|mimes:jpg,jpeg,png,gif,webp|max:2048',
         ]);
@@ -86,6 +86,7 @@ class ShopController extends Controller
 
         $validatedData = $request->validate([
             'name' => 'sometimes|required|string|max:255|unique:shops,name,' . $id,
+            'description' => 'sometimes|required|string',
             'image' => 'sometimes|file|mimetypes:image/jpeg,image/png,image/gif,image/webp|max:2048', // Validate image
             'is_active' => 'sometimes|boolean',
         ]);

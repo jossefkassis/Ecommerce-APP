@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Product;
@@ -8,10 +9,24 @@ use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
-    //show product by id
+    // Public: Show a specific active product by ID
     public function show($id)
     {
-        $product = Product::with('gallery','shop:id,name', 'category:id,title')->find($id);
+        $product = Product::with('gallery', 'shop:id,name', 'category:id,title')
+            ->where('is_active', true)
+            ->find($id);
+
+        if (!$product) {
+            return response()->json(['message' => 'Product not found or inactive'], 404);
+        }
+
+        return response()->json($product);
+    }
+
+    // Admin: Show a specific product by ID regardless of active status
+    public function adminShow($id)
+    {
+        $product = Product::with('gallery', 'shop:id,name', 'category:id,title')->find($id);
 
         if (!$product) {
             return response()->json(['message' => 'Product not found'], 404);
@@ -20,21 +35,31 @@ class ProductController extends Controller
         return response()->json($product);
     }
 
-    // Show all products
+    // Public: Show all active products
     public function index()
     {
         $products = Product::with('shop:id,name', 'category:id,title')
+            ->where('is_active', true)
             ->select('id', 'title', 'subtitle', 'description', 'featured_image', 'price', 'discount_price', 'quantity', 'in_stock', 'shop_id', 'category_id')
             ->get();
 
         return response()->json($products);
     }
 
-    // Show all products by shop ID
+    // Admin: Show all products regardless of active status
+    public function adminIndex()
+    {
+        $products = Product::with('shop:id,name', 'category:id,title')->get();
+
+        return response()->json($products);
+    }
+
+    // Public: Show all active products by shop ID
     public function getProductsByShop($shopId)
     {
         $products = Product::with('shop:id,name', 'category:id,title')
             ->where('shop_id', $shopId)
+            ->where('is_active', true)
             ->select('id', 'title', 'subtitle', 'description', 'featured_image', 'price', 'discount_price', 'quantity', 'in_stock', 'shop_id', 'category_id')
             ->get();
 
@@ -45,11 +70,12 @@ class ProductController extends Controller
         return response()->json($products);
     }
 
-    // Show all products by category ID
+    // Public: Show all active products by category ID
     public function getProductsByCategory($categoryId)
     {
         $products = Product::with('shop:id,name', 'category:id,title')
             ->where('category_id', $categoryId)
+            ->where('is_active', true)
             ->select('id', 'title', 'subtitle', 'description', 'featured_image', 'price', 'discount_price', 'quantity', 'in_stock', 'shop_id', 'category_id')
             ->get();
 
@@ -60,8 +86,7 @@ class ProductController extends Controller
         return response()->json($products);
     }
 
-
-    //Admin : add new product
+    // Admin: Create a new product
     public function store(Request $request)
     {
         $validatedData = $request->validate([
@@ -76,18 +101,22 @@ class ProductController extends Controller
             'featured_image' => 'required|file|mimes:jpg,jpeg,png,gif,webp|max:2048',
             'gallery' => 'nullable|array',
             'gallery.*' => 'file|mimes:jpg,jpeg,png,gif,webp|max:2048',
+            'is_active' => 'nullable|boolean',
         ]);
-    
+
+        // Default `is_active` to true if not provided
+        $validatedData['is_active'] = $validatedData['is_active'] ?? true;
+
         // Determine `in_stock` based on quantity
         $validatedData['in_stock'] = $validatedData['quantity'] > 0;
-    
+
         // Store the featured image
         $featuredPath = $request->file('featured_image')->store('products', 'public');
         $validatedData['featured_image'] = url('storage/' . $featuredPath);
-    
+
         // Create the product
         $product = Product::create($validatedData);
-    
+
         // Store gallery images
         if ($request->hasFile('gallery')) {
             foreach ($request->file('gallery') as $galleryImage) {
@@ -98,7 +127,7 @@ class ProductController extends Controller
                 ]);
             }
         }
-    
+
         return response()->json([
             'message' => 'Product created successfully',
             'product' => $product,
@@ -106,8 +135,7 @@ class ProductController extends Controller
         ], 201);
     }
 
-
-    // Admin : Update a product
+    // Admin: Update a product
     public function update(Request $request, $id)
     {
         $product = Product::find($id);
@@ -128,6 +156,7 @@ class ProductController extends Controller
             'featured_image' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp|max:2048',
             'gallery' => 'nullable|array',
             'gallery.*' => 'file|mimes:jpg,jpeg,png,gif,webp|max:2048',
+            'is_active' => 'nullable|boolean',
         ]);
 
         // Update featured image if provided
@@ -174,33 +203,4 @@ class ProductController extends Controller
             'gallery' => $product->gallery,
         ]);
     }
-
-    //Admin : Delete a product
-    public function destroy($id)
-    {
-        $product = Product::with('gallery')->find($id);
-
-        if (!$product) {
-            return response()->json(['message' => 'Product not found'], 404);
-        }
-
-        // Delete featured image from storage
-        if ($product->featured_image) {
-            $oldImagePath = str_replace(url('/storage/'), '', $product->featured_image);
-            Storage::disk('public')->delete($oldImagePath);
-        }
-
-        // Delete gallery images from storage and database
-        foreach ($product->gallery as $galleryImage) {
-            $oldGalleryPath = str_replace(url('/storage/'), '', $galleryImage->image_url);
-            Storage::disk('public')->delete($oldGalleryPath);
-            $galleryImage->delete();
-        }
-
-        // Delete product
-        $product->delete();
-
-        return response()->json(['message' => 'Product deleted successfully']);
-    }
-    
 }

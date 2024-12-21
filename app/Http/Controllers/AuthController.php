@@ -17,25 +17,32 @@ class AuthController extends Controller
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
+            'phone' => 'nullable|string|unique:users',
             'password' => 'required|string|min:8|confirmed',
+            'address' => 'nullable|string|unique:users',
         ]);
-
+    
         $user = User::create([
             'name' => $validatedData['name'],
             'email' => $validatedData['email'],
+            'phone' => $validatedData['phone'],
+            'address' => $validatedData['address'],
             'password' => Hash::make($validatedData['password']),
-            'role' => 'user', // Assign default role
+            'role' => 'user',
+
         ]);
-
-        $token = $user->createToken($user->name.'auth_token')->plainTextToken;
-
+    
+        $token = $user->createToken($user->name . 'auth_token')->plainTextToken;
+    
         return response()->json([
-           'message'=> 'register in successful',
-            'user'=> $user,
+            'status'=>true,
+            'message' => 'Registration successful',
+            'user' => $user,
             'access_token' => $token,
             'token_type' => 'Bearer',
-        ],201);
+        ], 200);
     }
+    
 
 
      /**
@@ -68,29 +75,34 @@ class AuthController extends Controller
      * Log in an existing user.
      */
     public function login(Request $request)
-    {
-        $credentials = $request->validate([
-            'email' => 'required|string|email',
-            'password' => 'required|string',
-        ]);
+{
+    $credentials = $request->validate([
+        'identifier' => 'required|string', // Can be email or phone
+        'password' => 'required|string',
+    ]);
 
-        $user = User::where('email',$credentials['email'])->first();
+    // Check if the identifier is an email or phone
+    $user = User::where('email', $credentials['identifier'])
+                ->orWhere('phone', $credentials['identifier'])
+                ->first();
 
-        if(!$user || !Hash::check($request->password,$user->password)){
-            return response()->json([
-                'message'=>'wrong credentials'
-            ],401);
-        }
-
-        $token = $user->createToken($user->name.'auth_token')->plainTextToken;
-
+    if (!$user || !Hash::check($credentials['password'], $user->password)) {
         return response()->json([
-            'message'=> 'login in successful',
-            'user'=> $user,
-            'access_token' => $token,
-            'token_type' => 'Bearer',
-        ]);
+            'message' => 'Invalid credentials',
+        ], 401);
     }
+
+    $token = $user->createToken($user->name . 'auth_token')->plainTextToken;
+
+    return response()->json([
+        'status'=>true,
+        'message' => 'Login successful',
+        'user' => $user,
+        'access_token' => $token,
+        'token_type' => 'Bearer',
+    ]);
+}
+
 
      /**
      * Log out the authenticated user.
