@@ -1,7 +1,10 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CartController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\FavoriteController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\UserController;
@@ -24,6 +27,24 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/profile', [UserController::class, 'profile']);
     Route::post('/updateprofile', [UserController::class, 'updateProfile']);
     Route::post('/logout', [AuthController::class, 'logout']);
+
+    Route::get('/favorites', [FavoriteController::class, 'index']); // List user's favorites
+    Route::post('/addtofavorites/{productId}', [FavoriteController::class, 'store']); // Add to favorites
+    Route::delete('/favorites/{productId}', [FavoriteController::class, 'destroy']); // Remove from favorites
+
+    Route::get('/cart', [CartController::class, 'index']); // Get the cart
+    Route::post('/cart', [CartController::class, 'addToCart']); // Add or update items
+    Route::delete('/cart/item/{productId}', [CartController::class, 'removeItem']); // Remove a single item
+    Route::delete('/cart', [CartController::class, 'clearCart']); // Clear the cart
+    Route::delete('/old-carts', [CartController::class, 'deleteOldCarts']); // Delete old carts
+
+    Route::post('/checkout', [OrderController::class, 'checkout']); // Checkout
+    Route::get('/user/orders', [OrderController::class, 'getUserOrders']); // Get user orders
+    Route::get('/user/orders/{id}', [OrderController::class, 'getUserOrder']); // Get specific user order
+    Route::post('/user/orders/cancel/{id}', [OrderController::class, 'cancelOrder']); // Cancel order
+
+
+
 });
 
 // Admin routes
@@ -51,4 +72,11 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::post('/admin/products', [ProductController::class, 'store']); // Create a new product
     Route::post('/admin/updateproduct/{id}', [ProductController::class, 'update']); // Update a product
     Route::delete('/admin/deleteproduct/{id}', [ProductController::class, 'destroy']); // Delete a product
+
+    //order management
+    Route::get('/admin/orders', [OrderController::class, 'getAllOrders']); // Get all orders
+    Route::get('/admin/orders/user/{userId}', [OrderController::class, 'getOrdersByUser']); // Get orders by user ID
+    Route::get('/admin/orders/{id}', [OrderController::class, 'adminGetOrderById']); // Get order by ID
+    Route::post('/admin/orders/status/{id}', [OrderController::class, 'changeOrderStatus']); // Change order status
+
 });

@@ -43,7 +43,9 @@ class UserController extends Controller
             'image' => 'sometimes|image|max:2048',
         ]);
 
-        $user = User::where('email',$user['email'])->first();
+        if (!$user instanceof User) {
+            $user = User::find($user->id); // Refetch the user model if not resolved
+        }
 
         if ($request->hasFile('image')) {
             
@@ -73,7 +75,9 @@ class UserController extends Controller
 
         $user = Auth::user();
 
-        $user = User::where('email',$user['email'])->first();
+        if (!$user instanceof User) {
+            $user = User::find($user->id); // Refetch the user model if not resolved
+        }
 
         if (!Hash::check($request->current_password, $user->password)) {
             return response()->json(['message' => 'Current password is incorrect'], 400);
