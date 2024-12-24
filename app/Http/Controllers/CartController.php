@@ -34,62 +34,76 @@ class CartController extends Controller
 
     // Add or update items in the cart
     public function addToCart(Request $request)
-    {
-        $validated = $request->validate([
-            'items' => 'required|array',
-            'items.*.product_id' => 'required|exists:products,id',
-            'items.*.quantity' => 'required|integer|min:1',
-        ]);
+{
+    $validated = $request->validate([
+        'items' => 'required|array',
+        'items.*.product_id' => 'required|exists:products,id',
+        'items.*.quantity' => 'required|integer|min:1',
+    ]);
 
-        $user = Auth::user();
+    $user = Auth::user();
 
-        // Retrieve or create the cart for the user
-        $cart = UserCart::firstOrCreate(
-            ['user_id' => $user->id],
-            ['updated_at' => now()]
-        );
+    // Retrieve or create the cart for the user
+    $cart = UserCart::firstOrCreate(
+        ['user_id' => $user->id],
+        ['updated_at' => now()]
+    );
 
-        $responses = [];
+    $responses = [];
 
-        // Process each item in the request
-        foreach ($validated['items'] as $item) {
-            $cartItem = CartItem::where('cart_id', $cart->id)
-                ->where('product_id', $item['product_id'])
-                ->first();
+    foreach ($validated['items'] as $item) {
+        $product = Product::find($item['product_id']); // Retrieve the product
 
-            if ($cartItem) {
-                // Update the quantity if the item already exists
-                $cartItem->quantity = $item['quantity'];
-                $cartItem->save();
-
-                $responses[] = [
-                    'product_id' => $item['product_id'],
-                    'quantity' => $cartItem->quantity,
-                    'message' => 'Quantity updated',
-                ];
-            } else {
-                // Add the item to the cart
-                CartItem::create([
-                    'cart_id' => $cart->id,
-                    'product_id' => $item['product_id'],
-                    'quantity' => $item['quantity'],
-                ]);
-
-                $responses[] = [
-                    'product_id' => $item['product_id'],
-                    'quantity' => $item['quantity'],
-                    'message' => 'Item added',
-                ];
-            }
+        // Check if requested quantity exceeds available stock
+        if ($item['quantity'] > $product->quantity) {
+            $responses[] = [
+                'product_id' => $item['product_id'],
+                'requested_quantity' => $item['quantity'],
+                'available_quantity' => $product->quantity,
+                'message' => 'Insufficient stock',
+            ];
+            continue; // Skip this item
         }
 
-        $cart->touch(); // Update the cart's `updated_at` timestamp
+        // Check if the item already exists in the cart
+        $cartItem = CartItem::where('cart_id', $cart->id)
+            ->where('product_id', $item['product_id'])
+            ->first();
 
-        return response()->json([
-            'message' => 'Cart updated successfully',
-            'details' => $responses,
-        ], 201);
+        if ($cartItem) {
+            // Update the quantity
+            $cartItem->quantity = $item['quantity'];
+            $cartItem->save();
+
+            $responses[] = [
+                'product_id' => $item['product_id'],
+                'quantity' => $cartItem->quantity,
+                'message' => 'Quantity updated',
+            ];
+        } else {
+            // Add the item to the cart
+            CartItem::create([
+                'cart_id' => $cart->id,
+                'product_id' => $item['product_id'],
+                'quantity' => $item['quantity'],
+            ]);
+
+            $responses[] = [
+                'product_id' => $item['product_id'],
+                'quantity' => $item['quantity'],
+                'message' => 'Item added',
+            ];
+        }
     }
+
+    $cart->touch(); // Update the cart's `updated_at` timestamp
+
+    return response()->json([
+        'message' => 'Cart updated successfully',
+        'details' => $responses,
+    ], 201);
+}
+
 
     // Remove a specific item from the cart
     public function removeItem($productId)

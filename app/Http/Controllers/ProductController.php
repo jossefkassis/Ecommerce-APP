@@ -86,11 +86,39 @@ class ProductController extends Controller
         return response()->json($products);
     }
 
+    // Public: Search for products
+public function search(Request $request)
+{
+    $validatedData = $request->validate([
+        'query' => 'required|string|max:255', // Ensure a query parameter is provided
+    ]);
+
+    $query = $validatedData['query'];
+
+    // Search for products where the query appears in title, subtitle, or description
+    $products = Product::with('shop:id,name', 'category:id,title')
+        ->where('is_active', true) // Only active products
+        ->where(function ($q) use ($query) {
+            $q->where('title', 'LIKE', "%$query%")
+              ->orWhere('subtitle', 'LIKE', "%$query%")
+              ->orWhere('description', 'LIKE', "%$query%");
+        })
+        ->select('id', 'title', 'subtitle', 'description', 'featured_image', 'price', 'discount_price', 'quantity', 'in_stock', 'shop_id', 'category_id')
+        ->get();
+
+    if ($products->isEmpty()) {
+        return response()->json(['message' => 'No products found'], 404);
+    }
+
+    return response()->json($products);
+}
+
+
     // Admin: Create a new product
     public function store(Request $request)
     {
         $validatedData = $request->validate([
-            'title' => 'required|string|max:255',
+            'title' => 'required|string|max:255|unique:products',
             'subtitle' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
@@ -145,7 +173,7 @@ class ProductController extends Controller
         }
 
         $validatedData = $request->validate([
-            'title' => 'sometimes|string|max:255',
+            'title' => 'sometimes|string|max:255|unique:products,title,' . $product->id,
             'subtitle' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'price' => 'sometimes|numeric|min:0',

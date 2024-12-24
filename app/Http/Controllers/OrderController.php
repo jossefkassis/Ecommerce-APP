@@ -26,7 +26,8 @@ class OrderController extends Controller
 
     // Calculate total price
     $totalPrice = $cart->items->sum(function ($item) {
-        return $item->quantity * $item->product->price;
+        $price = $item->product->discount_price ?? $item->product->price; // Use discount_price if available
+        return $item->quantity * $price;
     });
 
     DB::beginTransaction();
@@ -61,6 +62,9 @@ class OrderController extends Controller
 
             // Reduce product quantity
             $cartItem->product->decrement('quantity', $cartItem->quantity);
+            if ($cartItem->product->quantity == 0) {
+                $cartItem->product->update(['in_stock' => 0]);
+            }
         }
 
         // Clear the user's cart
@@ -182,6 +186,10 @@ public function cancelOrder($id)
                 $product = Product::find($item->product_id);
                 if ($product) {
                     $product->increment('quantity', $item->quantity);
+
+                    if ($product->quantity > 0 && $product->in_stock === 0) {
+                        $product->update(['in_stock' => 1]);
+                    }
                 }
             }
         }

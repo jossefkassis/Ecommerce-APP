@@ -21,6 +21,7 @@ Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{id}', [ProductController::class, 'show']); // Get active product by ID
 Route::get('/products/shop/{shopId}', [ProductController::class, 'getProductsByShop']); // Get active products by shop ID
 Route::get('/products/category/{categoryId}', [ProductController::class, 'getProductsByCategory']); // Get active products by category ID
+Route::post('/products/search', [ProductController::class, 'search']);
 
 // Routes for authenticated users
 Route::middleware(['auth:sanctum'])->group(function () {
