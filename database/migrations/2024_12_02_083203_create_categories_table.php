@@ -10,11 +10,12 @@ return new class extends Migration {
             $table->id();
             $table->string('title')->uniqid();
             $table->string('image_url')->nullable();
+            $table->text('description');
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }
-
+    
     public function down(): void
     {
         Schema::dropIfExists('categories');

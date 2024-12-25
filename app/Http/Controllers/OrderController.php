@@ -66,7 +66,7 @@ class OrderController extends Controller
                 $cartItem->product->update(['in_stock' => 0]);
             }
         }
-
+ 
         // Clear the user's cart
         $cart->items()->delete();
 

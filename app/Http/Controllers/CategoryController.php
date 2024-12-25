@@ -55,7 +55,7 @@ class CategoryController extends Controller
             'image' => 'sometimes|file|mimetypes:image/jpeg,image/png,image/gif,image/webp|max:2048',// Validate the image file
             'is_active' => 'required|boolean',
         ]);
-    
+        
         if ($request->hasFile('image')) {
             // Store the image in the storage/images directory
             $path = $request->file('image')->store('category', 'public');
@@ -83,6 +83,7 @@ class CategoryController extends Controller
         // Validate the form-data input
         $validatedData = $request->validate([
             'title' => 'sometimes|required|string|max:255|unique:categories,title,' . $id,
+            'description' => 'sometimes|required|string',
             'is_active' => 'sometimes|boolean',
             'image' => 'sometimes|file|mimes:jpg,jpeg,png,gif,webp|max:2048', // Validate image file
         ]);
