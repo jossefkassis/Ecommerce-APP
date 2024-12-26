@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\Shop;
 use App\Models\UserCart;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -202,6 +203,55 @@ public function cancelOrder($id)
             'order' => $order,
         ]);
     }
+    public function getBestSellingProducts()
+{
+    $bestSellingProducts = OrderItem::select('product_id', DB::raw('SUM(quantity) as total_sold'))
+        ->join('orders', 'order_items.order_id', '=', 'orders.id')
+        ->where('orders.status', 'completed') // Only include completed orders
+        ->groupBy('product_id')
+        ->orderBy('total_sold', 'desc')
+        ->take(10) // Limit to top 10 best-selling products
+        ->get();
+
+    // Fetch product details along with category and shop for each best-selling product
+    $bestSellingProductsWithDetails = $bestSellingProducts->map(function ($orderItem) {
+        $product = Product::with(['category', 'shop'])->find($orderItem->product_id);
+        
+        // Add total_sold to the product object
+        if ($product) {
+            $product->total_sold = $orderItem->total_sold;
+        }
+
+        return $product;
+    });
+
+    return response()->json($bestSellingProductsWithDetails);
+}
+
+
+public function getBestSellingShops()
+{
+    $bestSellingShops = OrderItem::select('products.shop_id', DB::raw('SUM(order_items.quantity) as total_sold'))
+        ->join('orders', 'order_items.order_id', '=', 'orders.id')
+        ->join('products', 'order_items.product_id', '=', 'products.id')
+        ->where('orders.status', 'completed') // Only include completed orders
+        ->groupBy('products.shop_id')
+        ->orderBy('total_sold', 'desc')
+        ->take(10) // Limit to top 10 best-selling shops
+        ->get();
+    
+    // Fetch shop details for each best-selling shop
+    $bestSellingShopsWithDetails = $bestSellingShops->map(function ($item) {
+        $shop = Shop::find($item->shop_id);
+        $shop->total_sold = $item->total_sold;
+        return $shop;
+    });
+
+    return response()->json($bestSellingShopsWithDetails);
+}
+
+
+    
     
 
 }
