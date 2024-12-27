@@ -143,7 +143,7 @@ class CartController extends Controller
         }
     
         // // Delete all cart items
-        $cart->cartItems()->delete();
+        $cart->Items()->delete();
     
         return response()->json(['message' => 'Cart cleared successfully','cart'=>$cart]);
     }

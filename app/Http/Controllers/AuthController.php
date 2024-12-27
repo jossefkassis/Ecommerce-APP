@@ -47,7 +47,7 @@ class AuthController extends Controller
      /**
      * create  a new user with rolefor admins only.
      */
-    public function createUser(Request $request)
+    public function     createUser(Request $request)
     {
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',

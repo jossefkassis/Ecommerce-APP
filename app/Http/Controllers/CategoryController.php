@@ -55,7 +55,7 @@ class CategoryController extends Controller
             'image' => 'sometimes|file|mimetypes:image/jpeg,image/png,image/gif,image/webp|max:2048',// Validate the image file
             'is_active' => 'required|boolean',
         ]);
-    
+        
         if ($request->hasFile('image')) {
             // Store the image in the storage/images directory
             $path = $request->file('image')->store('category', 'public');

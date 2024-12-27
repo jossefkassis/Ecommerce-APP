@@ -45,6 +45,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/user/orders/cancel/{id}', [OrderController::class, 'cancelOrder']); // Cancel order
 
 
+    Route::get('/bestsellingproducts', [OrderController::class, 'getBestSellingProducts']);
+    Route::get('/bestsellingshops', [OrderController::class, 'getBestSellingShops']);
+
 
 });
 
