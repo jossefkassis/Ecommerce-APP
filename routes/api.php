@@ -47,6 +47,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::get('/bestsellingproducts', [OrderController::class, 'getBestSellingProducts']);
     Route::get('/bestsellingshops', [OrderController::class, 'getBestSellingShops']);
+    Route::get('/bestsellingcategories', [OrderController::class, 'getBestSellingCategories']);
 
 
 });
@@ -58,6 +59,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
 
     // Shop management
     Route::get('/admin/shops', [ShopController::class, 'adminIndex']);
+    Route::get('/admin/shopswithproducts', [ShopController::class, 'shopsWithProducts']);
     Route::get('/admin/shops/{id}', [ShopController::class, 'adminShow']);
     Route::post('/admin/shops', [ShopController::class, 'store']);
     Route::post('/admin/updateshop/{id}', [ShopController::class, 'update']);
@@ -82,5 +84,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::get('/admin/orders/user/{userId}', [OrderController::class, 'getOrdersByUser']); // Get orders by user ID
     Route::get('/admin/orders/{id}', [OrderController::class, 'adminGetOrderById']); // Get order by ID
     Route::post('/admin/orders/status/{id}', [OrderController::class, 'changeOrderStatus']); // Change order status
+
+    Route::get('/admin/statics', [ProductController::class, 'Statics']);
 
 });

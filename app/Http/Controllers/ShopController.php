@@ -124,4 +124,13 @@ class ShopController extends Controller
 
         return response()->json(['message' => 'Shop deleted successfully']);
     }
+    public function shopsWithProducts()
+    {
+        // Eager load the products for each shop
+        $shops = Shop::with('products')->get();
+    
+        return response()->json($shops);
+    }
+    
+
 }
