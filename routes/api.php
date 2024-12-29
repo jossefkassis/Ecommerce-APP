@@ -16,12 +16,17 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/shops', [ShopController::class, 'index']);
 Route::get('/shops/{id}', [ShopController::class, 'show']);
 Route::get('/categories', [CategoryController::class, 'index']);
-Route::get('/categories/{id}', [CategoryController::class, 'show']);
+Route::get('/categories/{id}', [CategoryController::class, 'show']);    
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{id}', [ProductController::class, 'show']); // Get active product by ID
 Route::get('/products/shop/{shopId}', [ProductController::class, 'getProductsByShop']); // Get active products by shop ID
 Route::get('/products/category/{categoryId}', [ProductController::class, 'getProductsByCategory']); // Get active products by category ID
 Route::post('/products/search', [ProductController::class, 'search']);
+
+
+Route::get('/bestsellingproducts', [OrderController::class, 'getBestSellingProducts']);
+Route::get('/bestsellingshops', [OrderController::class, 'getBestSellingShops']);
+Route::get('/bestsellingcategories', [OrderController::class, 'getBestSellingCategories']);
 
 // Routes for authenticated users
 Route::middleware(['auth:sanctum'])->group(function () {
@@ -45,9 +50,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/user/orders/cancel/{id}', [OrderController::class, 'cancelOrder']); // Cancel order
 
 
-    Route::get('/bestsellingproducts', [OrderController::class, 'getBestSellingProducts']);
-    Route::get('/bestsellingshops', [OrderController::class, 'getBestSellingShops']);
-    Route::get('/bestsellingcategories', [OrderController::class, 'getBestSellingCategories']);
 
 
 });

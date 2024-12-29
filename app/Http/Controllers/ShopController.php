@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\OrderItem;
 use App\Models\Shop;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class ShopController extends Controller
@@ -126,10 +128,20 @@ class ShopController extends Controller
     }
     public function shopsWithProducts()
     {
-        // Eager load the products for each shop
         $shops = Shop::with('products')->get();
     
-        return response()->json($shops);
+        $shopsWithTotalSold = $shops->map(function ($shop) {
+            $totalSold = OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
+                ->join('products', 'order_items.product_id', '=', 'products.id')
+                ->where('orders.status', 'completed') // Only include completed orders
+                ->where('products.shop_id', $shop->id)
+                ->sum('order_items.quantity');
+    
+            $shop->total_sold = $totalSold;
+            return $shop;
+        });
+    
+        return response()->json($shopsWithTotalSold);
     }
     
 

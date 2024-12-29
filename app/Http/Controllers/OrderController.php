@@ -259,7 +259,7 @@ public function getBestSellingCategories()
         ->where('orders.status', 'completed') // Only include completed orders
         ->groupBy('products.category_id')
         ->orderBy('total_sold', 'desc')
-        ->take(10) // Limit to top 10 best-selling categories
+        ->take(10) // Limit to top 10 best-selling categories   
         ->get();
 
     // Fetch category details for each best-selling category
