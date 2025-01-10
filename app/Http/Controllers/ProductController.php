@@ -160,7 +160,7 @@ public function search(Request $request)
                 ]);
             }
         }
-
+        
         return response()->json([
             'message' => 'Product created successfully',
             'product' => $product,

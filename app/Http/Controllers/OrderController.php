@@ -213,7 +213,7 @@ public function cancelOrder($id)
         ->orderBy('total_sold', 'desc')
         ->take(10) // Limit to top 10 best-selling products
         ->get();
-
+        
     // Fetch product details along with category and shop for each best-selling product
     $bestSellingProductsWithDetails = $bestSellingProducts->map(function ($orderItem) {
         $product = Product::with(['category', 'shop'])->find($orderItem->product_id);

@@ -28,7 +28,7 @@ class CartController extends Controller
 
         return response()->json([
             'cart_id' => $cart->id,
-            'items' => $cart->items,
+            'items' => $cart->items,    
         ]);
     }
 
