@@ -2,8 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductGallery;
+use App\Models\Shop;
+use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -155,7 +160,7 @@ public function search(Request $request)
                 ]);
             }
         }
-
+        
         return response()->json([
             'message' => 'Product created successfully',
             'product' => $product,
@@ -231,4 +236,38 @@ public function search(Request $request)
             'gallery' => $product->gallery,
         ]);
     }
+
+    public function Statics()
+    {
+        $totalCategories = Category::count();
+        $totalProducts = Product::count();
+        $totalShops = Shop::count();
+        $totalCustomers = User::count();
+        $totalCompletedOrders = Order::where('status', 'completed')->count();
+    
+        // Calculate cash earned today
+        $today = Carbon::today();
+        $cashToday = Order::where('status', 'completed')
+            ->whereDate('created_at', $today)
+            ->sum('total_price');
+    
+        // Calculate cash earned this month
+        $startOfMonth = Carbon::now()->startOfMonth();
+        $cashThisMonth = Order::where('status', 'completed')
+            ->whereBetween('created_at', [$startOfMonth, Carbon::now()])
+            ->sum('total_price');
+    
+        return response()->json([
+            'total_categories' => $totalCategories,
+            'total_products' => $totalProducts,
+            'total_shops' => $totalShops,
+            'total_users' => $totalCustomers,
+            'total_completed_orders' => $totalCompletedOrders,
+            'cash_today' => $cashToday,
+            'cash_this_month' => $cashThisMonth,
+        ]);
+    }
+    
+    
+    
 }
