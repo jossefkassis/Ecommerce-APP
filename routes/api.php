@@ -22,6 +22,9 @@ Route::get('/products/{id}', [ProductController::class, 'show']); // Get active 
 Route::get('/products/shop/{shopId}', [ProductController::class, 'getProductsByShop']); // Get active products by shop ID
 Route::get('/products/category/{categoryId}', [ProductController::class, 'getProductsByCategory']); // Get active products by category ID
 Route::post('/products/search', [ProductController::class, 'search']);
+Route::get('/bestsellingproducts', [OrderController::class, 'getBestSellingProducts']);
+Route::get('/bestsellingshops', [OrderController::class, 'getBestSellingShops']);
+
 
 // Routes for authenticated users
 Route::middleware(['auth:sanctum'])->group(function () {
@@ -44,9 +47,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/user/orders/{id}', [OrderController::class, 'getUserOrder']); // Get specific user order
     Route::post('/user/orders/cancel/{id}', [OrderController::class, 'cancelOrder']); // Cancel order
 
-
-    Route::get('/bestsellingproducts', [OrderController::class, 'getBestSellingProducts']);
-    Route::get('/bestsellingshops', [OrderController::class, 'getBestSellingShops']);
 
 
 });

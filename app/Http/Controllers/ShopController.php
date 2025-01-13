@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Http\Controllers;
-
 use App\Models\Shop;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -61,7 +60,7 @@ class ShopController extends Controller
             $path = $request->file('image')->store('shop', 'public');
         
             // Generate the public URL
-            $validatedData['image_url'] = url('storage/' . $path);
+            $validatedData['image_url'] = '/storage/' . $path;
         
          }
     
@@ -94,13 +93,13 @@ class ShopController extends Controller
         if ($request->hasFile('image')) {
             // Delete old image if it exists
             if ($shop->image_url) {
-                $oldImagePath = str_replace(url('/storage/'), '', $shop->image_url);
+                $oldImagePath = str_replace('/storage/', '', $shop->image_url);
                 Storage::disk('public')->delete($oldImagePath);
             }
 
             // Store the new image
             $path = $request->file('image')->store('shop', 'public');
-            $validatedData['image_url'] = url(Storage::url($path));
+            $validatedData['image_url'] = '/storage/' . $path;
         }
 
         $shop->update($validatedData);

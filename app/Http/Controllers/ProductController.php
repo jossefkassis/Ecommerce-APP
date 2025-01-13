@@ -140,7 +140,7 @@ public function search(Request $request)
 
         // Store the featured image
         $featuredPath = $request->file('featured_image')->store('products', 'public');
-        $validatedData['featured_image'] = url('storage/' . $featuredPath);
+        $validatedData['featured_image'] = '/storage/' . $featuredPath;
 
         // Create the product
         $product = Product::create($validatedData);
@@ -195,7 +195,7 @@ public function search(Request $request)
             }
 
             $featuredPath = $request->file('featured_image')->store('products', 'public');
-            $validatedData['featured_image'] = url('storage/' . $featuredPath);
+            $validatedData['featured_image'] = '/storage/' . $featuredPath;
         }
 
         // Update in_stock based on quantity
@@ -210,7 +210,7 @@ public function search(Request $request)
         if ($request->hasFile('gallery')) {
             // Delete existing gallery images from storage and database
             foreach ($product->gallery as $galleryImage) {
-                $oldGalleryPath = str_replace(url('/storage/'), '', $galleryImage->image_url);
+                $oldGalleryPath = str_replace('/storage/', '', $galleryImage->image_url);
                 Storage::disk('public')->delete($oldGalleryPath);
                 $galleryImage->delete();
             }
@@ -220,7 +220,7 @@ public function search(Request $request)
                 $galleryPath = $galleryImage->store('gallery', 'public');
                 ProductGallery::create([
                     'product_id' => $product->id,
-                    'image_url' => url('storage/' . $galleryPath),
+                    'image_url' => '/storage/' . $galleryPath,
                 ]);
             }
         }

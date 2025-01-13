@@ -59,7 +59,7 @@ class CategoryController extends Controller
         if ($request->hasFile('image')) {
             // Store the image in the storage/images directory
             $path = $request->file('image')->store('category', 'public');
-            $validatedData['image_url'] = url(Storage::url($path));
+            $validatedData['image_url'] = '/storage/' . $path;
         }
     
         $category = Category::create($validatedData);
@@ -92,13 +92,13 @@ class CategoryController extends Controller
         if ($request->hasFile('image')) {
             // Delete old image if it exists
             if ($category->image_url) {
-                $oldImagePath = str_replace(url('/storage/'), '', $category->image_url); // Extract relative path
+                $oldImagePath = str_replace('/storage/', '', $category->image_url); // Extract relative path
                 Storage::disk('public')->delete($oldImagePath);
             }
     
             // Store new image
             $path = $request->file('image')->store('category', 'public');
-            $validatedData['image_url'] = url(Storage::url($path)); // Save full URL
+            $validatedData['image_url'] = '/storage/' . $path; // Save full URL
         }
     
         // Update category with validated data
