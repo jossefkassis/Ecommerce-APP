@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -212,7 +213,7 @@ public function cancelOrder($id)
         ->orderBy('total_sold', 'desc')
         ->take(10) // Limit to top 10 best-selling products
         ->get();
-
+        
     // Fetch product details along with category and shop for each best-selling product
     $bestSellingProductsWithDetails = $bestSellingProducts->map(function ($orderItem) {
         $product = Product::with(['category', 'shop'])->find($orderItem->product_id);
@@ -248,10 +249,28 @@ public function getBestSellingShops()
     });
 
     return response()->json($bestSellingShopsWithDetails);
+}   
+
+public function getBestSellingCategories()
+{
+    $bestSellingCategories = OrderItem::select('products.category_id', DB::raw('SUM(order_items.quantity) as total_sold'))
+        ->join('orders', 'order_items.order_id', '=', 'orders.id')
+        ->join('products', 'order_items.product_id', '=', 'products.id')
+        ->where('orders.status', 'completed') // Only include completed orders
+        ->groupBy('products.category_id')
+        ->orderBy('total_sold', 'desc')
+        ->take(10) // Limit to top 10 best-selling categories   
+        ->get();
+
+    // Fetch category details for each best-selling category
+    $bestSellingCategoriesWithDetails = $bestSellingCategories->map(function ($item) {
+      
+        $category = Category::find($item->category_id);
+        $category->total_sold = $item->total_sold;
+        return $category ; 
+    });
+
+    return response()->json($bestSellingCategoriesWithDetails);
 }
-
-
-    
-    
 
 }
