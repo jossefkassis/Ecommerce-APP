@@ -6,6 +6,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -21,21 +22,22 @@ Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{id}', [ProductController::class, 'show']); // Get active product by ID
 Route::get('/products/shop/{shopId}', [ProductController::class, 'getProductsByShop']); // Get active products by shop ID
 Route::get('/products/category/{categoryId}', [ProductController::class, 'getProductsByCategory']); // Get active products by category ID
-Route::post('/products/search', [ProductController::class, 'search']);
+Route::post('/search', [SearchController::class, 'search']);
+Route::get('/getcategoriesandshops', [SearchController::class, 'getCategoriesAndShops']);
 Route::get('/bestsellingproducts', [OrderController::class, 'getBestSellingProducts']);
-Route::get('/bestsellingshops', [OrderController::class, 'getBestSellingShops']);
-
-
-
-Route::get('/bestsellingproducts', [OrderController::class, 'getBestSellingProducts']);
-Route::get('/bestsellingshops', [OrderController::class, 'getBestSellingShops']);
-Route::get('/bestsellingcategories', [OrderController::class, 'getBestSellingCategories']);
+Route::get('/discountedproducts', [ProductController::class, 'discountedProducts']);
+Route::get('/admin/bestsellingshops', [ShopController::class, 'getAdminBestSellingShops']);
+Route::get('/bestsellingshops', [ShopController::class, 'getBestSellingShops']);
+Route::get('/bestsellingcategories', [CategoryController::class, 'getBestSellingCategories']);
+Route::get('/admin/bestsellingcategories', [CategoryController::class, 'getAdminBestSellingCategories']);
 
 // Routes for authenticated users
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/profile', [UserController::class, 'profile']);
     Route::post('/updateprofile', [UserController::class, 'updateProfile']);
+    Route::post('/updatepassword', [UserController::class, 'updatePassword']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/validate-token', [AuthController::class, 'validateToken']);
 
     Route::get('/favorites', [FavoriteController::class, 'index']); // List user's favorites
     Route::post('/addtofavorites/{productId}', [FavoriteController::class, 'store']); // Add to favorites

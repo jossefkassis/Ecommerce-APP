@@ -1,8 +1,9 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use Illuminate\Support\Facades\DB;
 use App\Models\Category;
+use App\Models\OrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -26,6 +27,36 @@ class CategoryController extends Controller
 
         return response()->json($category);
     }
+
+    //Public: best selling categories
+    public function getBestSellingCategories()
+{
+    // Fetch top 10 best-selling categories based on completed orders
+    $bestSellingCategories = OrderItem::select('products.category_id')
+        ->join('orders', 'order_items.order_id', '=', 'orders.id')
+        ->join('products', 'order_items.product_id', '=', 'products.id')
+        ->where('orders.status', 'completed') // Only include completed orders
+        ->groupBy('products.category_id')
+        ->take(10) // Limit to top 10
+        ->pluck('category_id') // Get category IDs only
+        ->toArray();
+
+    // Fetch category details in bulk
+    $categories = Category::whereIn('id', $bestSellingCategories)->get();
+
+    // Ensure at least 4 categories are returned
+    if ($categories->count() < 4) {
+        $randomCategories = Category::whereNotIn('id', $bestSellingCategories)
+            ->inRandomOrder()
+            ->take(4 - $categories->count())
+            ->get();
+
+        $categories = $categories->merge($randomCategories);
+    }
+
+    return response()->json($categories->values()); // Reset array keys
+}
+
 
     // Admin: List all categories
     public function adminIndex()
@@ -126,4 +157,29 @@ class CategoryController extends Controller
 
         return response()->json(['message' => 'Category deleted successfully']);
     }
+
+
+    //Admin: best selling categories
+    public function getAdminBestSellingCategories()
+{
+    $bestSellingCategories = OrderItem::select('products.category_id', DB::raw('SUM(order_items.quantity) as total_sold'))
+        ->join('orders', 'order_items.order_id', '=', 'orders.id')
+        ->join('products', 'order_items.product_id', '=', 'products.id')
+        ->where('orders.status', 'completed') // Only include completed orders
+        ->groupBy('products.category_id')
+        ->orderBy('total_sold', 'desc')
+        ->take(10) // Limit to top 10 best-selling categories   
+        ->get();
+
+    // Fetch category details for each best-selling category
+    $bestSellingCategoriesWithDetails = $bestSellingCategories->map(function ($item) {
+      
+        $category = Category::find($item->category_id);
+        $category->total_sold = $item->total_sold;
+        return $category ; 
+    });
+
+    return response()->json($bestSellingCategoriesWithDetails);
+}
+
 }

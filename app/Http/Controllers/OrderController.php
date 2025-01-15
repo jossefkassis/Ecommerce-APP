@@ -16,21 +16,41 @@ use Illuminate\Support\Facades\DB;
 class OrderController extends Controller
 {
     // Checkout: Create an order from the user's cart
-    public function checkout(Request $request)
+ // Checkout: Create an order from the user's cart
+public function checkout(Request $request)
 {
     $user = Auth::user();
 
-    $cart = UserCart::where('user_id', $user->id)->with('items.product')->first();
+    // Validate the cart items sent in the request
+    $validatedData = $request->validate([
+        'cart.items' => 'required|array|min:1',
+        'cart.items.*.product_id' => 'required|exists:products,id',
+        'cart.items.*.quantity' => 'required|integer|min:1',
+        'email' => 'nullable|email',
+        'phone' => 'nullable|string',
+        'address' => 'nullable|string',
+    ]);
 
-    if (!$cart || $cart->items->isEmpty()) {
-        return response()->json(['message' => 'Cart is empty'], 400);
-    }
+    $cartItems = $validatedData['cart']['items'];
 
     // Calculate total price
-    $totalPrice = $cart->items->sum(function ($item) {
-        $price = $item->product->discount_price ?? $item->product->price; // Use discount_price if available
-        return $item->quantity * $price;
-    });
+    $totalPrice = 0;
+
+    foreach ($cartItems as $item) {
+        $product = Product::find($item['product_id']);
+
+        // Check stock availability
+        if ($product->quantity < $item['quantity']) {
+            return response()->json([
+                'message' => 'Insufficient stock for ' . $product->title,
+            ], 400);
+        }
+
+        $price = ($product->discount_price && $product->discount_price > 0)
+    ? $product->discount_price
+    : $product->price;
+        $totalPrice += $item['quantity'] * $price;
+    }
 
     DB::beginTransaction();
 
@@ -46,40 +66,47 @@ class OrderController extends Controller
         ]);
 
         // Create order items and reduce product quantity
-        foreach ($cart->items as $cartItem) {
-            // Ensure the product has enough quantity
-            if ($cartItem->product->quantity < $cartItem->quantity) {
-                DB::rollBack();
-                return response()->json(['message' => 'Insufficient stock for ' . $cartItem->product->title], 400);
-            }
+        foreach ($cartItems as $item) {
+            $product = Product::find($item['product_id']);
 
+            // Create the order item
             OrderItem::create([
                 'order_id' => $order->id,
-                'product_id' => $cartItem->product_id,
-                'quantity' => $cartItem->quantity,
-                'price' => $cartItem->product->price,
-                'title' => $cartItem->product->title,
-                'image_url' => $cartItem->product->featured_image,
+                'product_id' => $item['product_id'],
+                'quantity' => $item['quantity'],
+                'price' => $product->price,
+                'title' => $product->title,
+                'image_url' => $product->featured_image,
             ]);
 
             // Reduce product quantity
-            $cartItem->product->decrement('quantity', $cartItem->quantity);
-            if ($cartItem->product->quantity == 0) {
-                $cartItem->product->update(['in_stock' => 0]);
+            $product->decrement('quantity', $item['quantity']);
+            if ($product->quantity == 0) {
+                $product->update(['in_stock' => 0]);
             }
         }
- 
-        // Clear the user's cart
-        $cart->items()->delete();
+
+        $userCart = UserCart::where('user_id', $user->id)->first();
+        if ($userCart) {
+            $userCart->items()->delete(); // Delete cart items
+            $userCart->delete(); // Delete the cart
+        }
 
         DB::commit();
-
-        return response()->json(['message' => 'Order placed successfully', 'order' => $order], 201);
+     
+        return response()->json([
+            'message' => 'Order placed successfully',
+            'order' => $order,
+        ], 201);
     } catch (\Exception $e) {
         DB::rollBack();
-        return response()->json(['message' => 'Failed to place order', 'error' => $e->getMessage()], 500);
+        return response()->json([
+            'message' => 'Failed to place order',
+            'error' => $e->getMessage(),
+        ], 500);
     }
 }
+
 
 
     // Get all orders for the authenticated user
@@ -128,7 +155,7 @@ public function cancelOrder($id)
 
     $order->update(['status' => 'canceled']);
 
-    return response()->json(['message' => 'Order canceled successfully', 'order' => $order]);
+    return response()->json(['message' => 'Order canceled successfully', 'order' => $order],200);
 }
 
 
@@ -228,49 +255,6 @@ public function cancelOrder($id)
 
     return response()->json($bestSellingProductsWithDetails);
 }
-
-
-public function getBestSellingShops()
-{
-    $bestSellingShops = OrderItem::select('products.shop_id', DB::raw('SUM(order_items.quantity) as total_sold'))
-        ->join('orders', 'order_items.order_id', '=', 'orders.id')
-        ->join('products', 'order_items.product_id', '=', 'products.id')
-        ->where('orders.status', 'completed') // Only include completed orders
-        ->groupBy('products.shop_id')
-        ->orderBy('total_sold', 'desc')
-        ->take(10) // Limit to top 10 best-selling shops
-        ->get();
-    
-    // Fetch shop details for each best-selling shop
-    $bestSellingShopsWithDetails = $bestSellingShops->map(function ($item) {
-        $shop = Shop::find($item->shop_id);
-        $shop->total_sold = $item->total_sold;
-        return $shop;
-    });
-
-    return response()->json($bestSellingShopsWithDetails);
-}   
-
-public function getBestSellingCategories()
-{
-    $bestSellingCategories = OrderItem::select('products.category_id', DB::raw('SUM(order_items.quantity) as total_sold'))
-        ->join('orders', 'order_items.order_id', '=', 'orders.id')
-        ->join('products', 'order_items.product_id', '=', 'products.id')
-        ->where('orders.status', 'completed') // Only include completed orders
-        ->groupBy('products.category_id')
-        ->orderBy('total_sold', 'desc')
-        ->take(10) // Limit to top 10 best-selling categories   
-        ->get();
-
-    // Fetch category details for each best-selling category
-    $bestSellingCategoriesWithDetails = $bestSellingCategories->map(function ($item) {
-      
-        $category = Category::find($item->category_id);
-        $category->total_sold = $item->total_sold;
-        return $category ; 
-    });
-
-    return response()->json($bestSellingCategoriesWithDetails);
-}
+  
 
 }

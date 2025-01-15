@@ -34,7 +34,7 @@ class UserController extends Controller
     public function updateProfile(Request $request)
     {
         $user = Auth::user();
-
+    
         $validatedData = $request->validate([
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|string|email|max:255|unique:users,email,' . $user->id,
@@ -42,28 +42,32 @@ class UserController extends Controller
             'phone' => 'sometimes|string|unique:users,phone,' . $user->id,
             'image' => 'sometimes|image|max:2048',
         ]);
-
+    
+        // Ensure the authenticated user exists
         if (!$user instanceof User) {
             $user = User::find($user->id); // Refetch the user model if not resolved
         }
-
+    
+        // Handle image upload
         if ($request->hasFile('image')) {
-            
-            if ($user->image) {
-                Storage::disk('public')->delete($user->image);
+            // Delete old image
+            if ($user->image_url) {
+                Storage::disk('public')->delete(str_replace('/storage/', '', $user->image_url));
             }
-            
+    
+            // Save new image
             $path = $request->file('image')->store('profile_images', 'public');
-            $validatedData['image'] = $path;
+            $validatedData['image_url'] = '/storage/' . $path;
         }
-
+    
         $user->update($validatedData);
-
+    
         return response()->json([
             'message' => 'Profile updated successfully',
             'user' => $user,
         ]);
     }
+    
 
     // Update the authenticated user's password
     public function updatePassword(Request $request)

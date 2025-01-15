@@ -91,33 +91,6 @@ class ProductController extends Controller
         return response()->json($products);
     }
 
-    // Public: Search for products
-public function search(Request $request)
-{
-    $validatedData = $request->validate([
-        'query' => 'required|string|max:255', // Ensure a query parameter is provided
-    ]);
-
-    $query = $validatedData['query'];
-
-    // Search for products where the query appears in title, subtitle, or description
-    $products = Product::with('shop:id,name', 'category:id,title')
-        ->where('is_active', true) // Only active products
-        ->where(function ($q) use ($query) {
-            $q->where('title', 'LIKE', "%$query%")
-              ->orWhere('subtitle', 'LIKE', "%$query%")
-              ->orWhere('description', 'LIKE', "%$query%");
-        })
-        ->select('id', 'title', 'subtitle', 'description', 'featured_image', 'price', 'discount_price', 'quantity', 'in_stock', 'shop_id', 'category_id')
-        ->get();
-
-    if ($products->isEmpty()) {
-        return response()->json(['message' => 'No products found'], 404);
-    }
-
-    return response()->json($products);
-}
-
 
     // Admin: Create a new product
     public function store(Request $request)
@@ -156,7 +129,7 @@ public function search(Request $request)
                 $galleryPath = $galleryImage->store('gallery', 'public');
                 ProductGallery::create([
                     'product_id' => $product->id,
-                    'image_url' => url('storage/' . $galleryPath),
+                    'image_url' => '/storage/' . $galleryPath,
                 ]);
             }
         }
@@ -268,6 +241,36 @@ public function search(Request $request)
         ]);
     }
     
+
+    // Public: Get all products with a discount
+public function discountedProducts()
+{
+    $discountedProducts = Product::with('shop:id,name', 'category:id,title')
+        ->where('is_active', true) // Ensure only active products are fetched
+        ->whereNotNull('discount_price') // Ensure the discount price is not null
+        ->whereColumn('discount_price', '<', 'price') // Ensure discount_price < price
+        ->select(
+            'id',
+            'title',
+            'subtitle',
+            'description',
+            'featured_image',
+            'price',
+            'discount_price',
+            'quantity',
+            'in_stock',
+            'shop_id',
+            'category_id'
+        )
+        ->get();
+
+    if ($discountedProducts->isEmpty()) {
+        return response()->json(['message' => 'No discounted products found'], 404);
+    }
+
+    return response()->json($discountedProducts);
+}
+
     
     
 }

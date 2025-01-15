@@ -28,6 +28,51 @@ class ShopController extends Controller
         return response()->json($shop);
     }
 
+//Public: brst selling shops
+public function getBestSellingShops()
+{
+    // Fetch top 10 best-selling shops based on completed orders
+    $bestSellingShops = OrderItem::select('products.shop_id', DB::raw('SUM(order_items.quantity) as total_sold'))
+        ->join('orders', 'order_items.order_id', '=', 'orders.id')
+        ->join('products', 'order_items.product_id', '=', 'products.id')
+        ->where('orders.status', 'completed') // Only include completed orders
+        ->groupBy('products.shop_id')
+        ->orderBy('total_sold', 'desc')
+        ->take(10) // Limit to top 10
+        ->pluck('shop_id') // Get shop IDs only
+        ->toArray();
+
+    // Fetch shop details in bulk
+    $shops = Shop::whereIn('id', $bestSellingShops)->get();
+
+    // Ensure at least 4 shops are returned
+    if ($shops->count() < 4) {
+        $randomShops = Shop::whereNotIn('id', $bestSellingShops)
+            ->inRandomOrder()
+            ->take(4 - $shops->count())
+            ->get();
+
+        $shops = $shops->merge($randomShops);
+    }
+
+    // Format the response to include the required fields
+    $shopsWithDetails = $shops->map(function ($shop) {
+        return [
+            'id' => $shop->id,
+            'name' => $shop->name,
+            'created_at' => $shop->created_at,
+            'updated_at' => $shop->updated_at,
+            'is_active' => $shop->is_active,
+            'image_url' => $shop->image_url,
+            'description' => $shop->description,
+        ];
+    });
+
+    return response()->json($shopsWithDetails->values()); // Reset array keys
+}
+
+
+
     // Admin: List all shops
     public function adminIndex()
     {
@@ -125,6 +170,29 @@ class ShopController extends Controller
 
         return response()->json(['message' => 'Shop deleted successfully']);
     }
+
+
+    // Admin:best selling shops
+    public function getAdminBestSellingShops()
+{
+    $bestSellingShops = OrderItem::select('products.shop_id', DB::raw('SUM(order_items.quantity) as total_sold'))
+        ->join('orders', 'order_items.order_id', '=', 'orders.id')
+        ->join('products', 'order_items.product_id', '=', 'products.id')
+        ->where('orders.status', 'completed') // Only include completed orders
+        ->groupBy('products.shop_id')
+        ->orderBy('total_sold', 'desc')
+        ->take(10) // Limit to top 10 best-selling shops
+        ->get();
+    
+    // Fetch shop details for each best-selling shop
+    $bestSellingShopsWithDetails = $bestSellingShops->map(function ($item) {
+        $shop = Shop::find($item->shop_id);
+        $shop->total_sold = $item->total_sold;
+        return $shop;
+    });
+
+    return response()->json($bestSellingShopsWithDetails);
+} 
     
     public function shopsWithProducts()
     {
